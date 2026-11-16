@@ -3,6 +3,8 @@
 A short guide to the five characters in this mod, for anyone who has not met
 them yet.
 
+![The five characters: walking, standing, facing left and sleeping](characters.png)
+
 ## What is TMNT?
 
 *Teenage Mutant Ninja Turtles* started in 1984 as an independent comic by Kevin

@@ -5,7 +5,9 @@ their rat sensei) walking a strip at the bottom of the window. Working agents
 walk, idle ones stroll and nap, blocked ones stop and call for you. Click a
 character to jump to its agent, right-click to choose who it is.
 
-![The five characters](preview.png)
+![The strip with five agents](preview.png)
+
+*An illustration of the strip, drawn from the real sprites: working, blocked, sleeping and done agents.*
 
 The cast is Leonardo, Raphael, Donatello, Michelangelo and Splinter. Who they
 are is in [CHARACTERS.md](CHARACTERS.md).

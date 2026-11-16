@@ -279,22 +279,76 @@ def pizza():
     return im
 
 
-def main():
+def strip_preview(all_frames):
+    """Draws the strip the way Herdr shows it: ground line, characters, name tags, bubbles."""
+    from PIL import ImageFont
+    w, h, ground = 900, 112, 88
+    im = Image.new("RGBA", (w, h), (30, 32, 40, 255))
+    d = ImageDraw.Draw(im)
+    d.line([(0, ground + 4), (w, ground + 4)], fill=(58, 62, 74, 255))
+    try:
+        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 11)
+        bold = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 13)
+    except OSError:
+        font = bold = ImageFont.load_default()
+    # (character, pose, frame index, tag, status color, bubble, mirrored)
+    cast = [
+        ("leonardo", "walk", 1, "api", (96, 170, 70), None, False),
+        ("raphael", "idle", 0, "tests", (215, 60, 60), "!", False),
+        ("donatello", "walk", 2, "infra", (96, 170, 70), None, True),
+        ("michelangelo", "sleep", 0, "docs", (130, 130, 140), "zZz", False),
+        ("splinter", "idle", 0, "review", (120, 120, 130), "✓", True),
+    ]
+    for i, (cid, pose, fi, tag, color, bubble, flip) in enumerate(cast):
+        cx = int((i + 0.5) * w / len(cast))
+        sprite = all_frames[cid][pose][fi]
+        sprite = ImageOps.mirror(sprite) if flip else sprite
+        big = scaled(sprite)
+        x0, y0, x1, y1 = big.getchannel("A").getbbox()
+        shadow_w = max(14, int((x1 - x0) * 0.7))
+        shadow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        ImageDraw.Draw(shadow).ellipse([cx - shadow_w // 2, ground - 2, cx + shadow_w // 2, ground + 4], fill=(0, 0, 0, 90))
+        im.alpha_composite(shadow)
+        im.alpha_composite(big, (cx - (x0 + x1) // 2, ground - y1))
+        if bubble:
+            top = max(2, ground - (y1 - y0) - 22)
+            fill = {"!": (215, 60, 60, 255), "✓": (80, 170, 100, 255)}.get(bubble)
+            tw = d.textlength("!" if bubble == "✓" else bubble, font=bold)
+            if fill:
+                d.rounded_rectangle([cx - tw / 2 - 6, top, cx + tw / 2 + 6, top + 18], radius=7, fill=fill)
+                if bubble == "✓":  # drawn by hand, the system font has no check glyph
+                    d.line([(cx - 4, top + 9), (cx - 1, top + 12), (cx + 5, top + 5)], fill=(255, 255, 255, 255), width=2)
+                else:
+                    d.text((cx - tw / 2, top + 2), bubble, font=bold, fill=(255, 255, 255, 255))
+            else:
+                d.text((cx - tw / 2, top + 2), bubble, font=bold, fill=(150, 154, 166, 255))
+        label = tag
+        tw = d.textlength(label, font=font)
+        d.ellipse([cx - tw / 2 - 11, ground + 12, cx - tw / 2 - 5, ground + 18], fill=color)
+        d.text((cx - tw / 2, ground + 8), label, font=font, fill=(160, 164, 176, 255))
+    return im.resize((w * 2, h * 2), Image.NEAREST)
+
+
+def main(preview_dir):
     OUT.mkdir(parents=True, exist_ok=True)
     pizza().resize((16 * SCALE * 2, 16 * SCALE * 2), Image.NEAREST).save(OUT / "pizza.png")
     sheet = Image.new("RGBA", (len(ORDER) * 70, 5 * 70), (36, 38, 46, 255))
+    all_frames = {}
     for ci, cid in enumerate(ORDER):
-        f = build(cid)
+        f = all_frames[cid] = build(cid)
         rows = [f["walk"][0], f["walk"][2], f["idle"][0], ImageOps.mirror(f["idle"][0]), f["sleep"][0]]
         for ri, im in enumerate(rows):
             sheet.alpha_composite(scaled(im), (ci * 70 + 3, ri * 70 + 3))
-    prev = OUT.parent.parent / "preview.png"
-    sheet.resize((sheet.width * 2, sheet.height * 2), Image.NEAREST).save(prev)
-    print("ok", OUT, prev)
+    preview_dir.mkdir(parents=True, exist_ok=True)
+    sheet.resize((sheet.width * 2, sheet.height * 2), Image.NEAREST).save(preview_dir / "characters.png")
+    strip_preview(all_frames).save(preview_dir / "preview.png")
+    print("ok", OUT, preview_dir)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate the tmnt-agents sprites.")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="mod folder to write into")
-    OUT = parser.parse_args().out
-    main()
+    parser.add_argument("--preview-dir", type=Path, default=DEFAULT_OUT.parent.parent, help="where preview.png and characters.png go")
+    args = parser.parse_args()
+    OUT = args.out
+    main(args.preview_dir)
