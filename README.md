@@ -73,7 +73,7 @@ python3 tools/make_sprites.py
 ```
 
 It needs Python 3 and [Pillow](https://python-pillow.org). It rewrites the GIFs,
-the picker icons, the pizza and `preview.png`. Characters are drawn facing
+the picker icons, the pizza, `preview.png` and `characters.png`. Characters are drawn facing
 right on a 32x32 grid, mirrored for left and scaled 2x with nearest neighbor.
 
 ## Tested on
